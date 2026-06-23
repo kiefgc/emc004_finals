@@ -1,0 +1,99 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(20)
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id            String        @id @default(uuid()) @db.Uuid
+  email         String        @unique @db.VarChar(255)
+  passwordHash  String?       @map("password_hash") @db.VarChar(255)
+  roleId        Int           @map("role_id")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  
+  role          Role          @relation(fields: [roleId], references: [id])
+  shoppingCart  ShoppingCart?
+  orders        Order[]
+
+  @@map("users")
+}
+
+model Product {
+  id            Int         @id @default(autoincrement())
+  name          String      @db.VarChar(150)
+  description   String?     @db.Text
+  priceCents    Int         @map("price_cents")
+  stockQuantity Int         @default(0) @map("stock_quantity")
+  supplierName  String?     @map("supplier_name") @db.VarChar(100)
+  imageUrl      String?     @map("image_url") @db.VarChar(512)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
+  
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@map("products")
+}
+
+model ShoppingCart {
+  id        Int        @id @default(autoincrement())
+  userId    String     @unique @map("user_id") @db.Uuid
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@map("shopping_carts")
+}
+
+model CartItem {
+  id        Int          @id @default(autoincrement())
+  cartId    Int          @map("cart_id")
+  productId Int          @map("product_id")
+  quantity  Int          @default(1)
+  
+  cart      ShoppingCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId], name: "unique_cart_item")
+  @@map("cart_items")
+}
+
+model Order {
+  id               Int         @id @default(autoincrement())
+  userId           String?     @map("user_id") @db.Uuid
+  totalAmountCents Int         @map("total_amount_cents")
+  status           String      @default("pending") @db.VarChar(30)
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
+  
+  user             User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items            OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id                    Int      @id @default(autoincrement())
+  orderId               Int      @map("order_id")
+  productId             Int?     @map("product_id")
+  quantity              Int
+  priceAtPurchaseCents  Int      @map("price_at_purchase_cents")
+  
+  order                 Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product               Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([orderId, productId], name: "unique_order_item")
+  @@map("order_items")
+}

@@ -1,0 +1,12 @@
+{
+    "name": "@prisma/custom",
+    "version": "1.0.0",
+    "main": "./client.ts",
+    "types": "./index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./index.d.ts",
+            "import": "./client.ts"
+        }
+    }
+}
