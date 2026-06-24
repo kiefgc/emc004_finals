@@ -15,7 +15,11 @@ export async function GET(
   }
 
   try {
-    const decoded = jwt.verify(auth_token.value, process.env.JWT_SECRET!) as {
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET not configured");
+    }
+
+    const decoded = jwt.verify(auth_token.value, process.env.JWT_SECRET) as {
       id: string;
       email: string;
       role: string;
@@ -75,7 +79,11 @@ export async function PATCH(
   }
 
   try {
-    const decoded = jwt.verify(auth_token.value, process.env.JWT_SECRET!) as {
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET not configured");
+    }
+
+    const decoded = jwt.verify(auth_token.value, process.env.JWT_SECRET) as {
       role: string;
     };
 
@@ -102,17 +110,52 @@ export async function PATCH(
       );
     }
 
-    // 4. Update Order Status
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: { status },
+    // 4. Update Order Status (+ restock inventory if cancelling)
+    const updatedOrder = await prisma.$transaction(async (tx) => {
+      const existingOrder = await tx.order.findUnique({
+        where: { id: orderId },
+        include: { items: true },
+      });
+
+      if (!existingOrder) {
+        // Let the outer catch translate this into a 404 via the same
+        // "not found" message used below, keeping behavior consistent.
+        throw Object.assign(new Error("Order not found"), { code: "P2025" });
+      }
+
+      // Only restock if we're transitioning INTO "cancelled" from some
+      // other status. This guards against double-restocking if an already
+      // cancelled order is "cancelled" again.
+      const isNewlyCancelled =
+        status === "cancelled" && existingOrder.status !== "cancelled";
+
+      if (isNewlyCancelled) {
+        for (const item of existingOrder.items) {
+          if (item.productId === null) continue;
+
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stockQuantity: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
+      }
+
+      return tx.order.update({
+        where: { id: orderId },
+        data: { status },
+      });
     });
 
     return NextResponse.json(updatedOrder, { status: 200 });
   } catch (error: any) {
     console.error(error);
 
-    // Handle specific Prisma error for missing record
+    // Handle specific Prisma error for missing record (and our own
+    // manually-thrown "Order not found" above)
     if (error.code === "P2025") {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }

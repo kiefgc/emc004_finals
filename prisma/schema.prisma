@@ -72,13 +72,17 @@ model CartItem {
 }
 
 model Order {
-  id               Int         @id @default(autoincrement())
-  userId           String?     @map("user_id") @db.Uuid
-  totalAmountCents Int         @map("total_amount_cents")
-  status           String      @default("pending") @db.VarChar(30)
-  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
-  
-  user             User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id               Int      @id @default(autoincrement())
+  userId           String?  @map("user_id") @db.Uuid
+  totalAmountCents Int      @map("total_amount_cents")
+  status           String   @default("pending") @db.VarChar(30)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  customerEmail    String   @map("customer_email") @db.VarChar(255)
+  shippingAddress  String   @map("shipping_address") @db.Text
+  contactPhone     String   @map("contact_phone") @db.VarChar(50)
+
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   items            OrderItem[]
 
   @@map("orders")

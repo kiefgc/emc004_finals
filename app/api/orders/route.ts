@@ -24,6 +24,28 @@ export async function POST(req: Request) {
 
     const userId = decoded.id;
 
+    const body = await req.json().catch(() => null);
+
+    const shippingAddress = body?.shippingAddress;
+    const contactPhone = body?.contactPhone;
+
+    if (
+      typeof shippingAddress !== "string" ||
+      shippingAddress.trim().length === 0
+    ) {
+      return NextResponse.json(
+        { error: "shippingAddress is required" },
+        { status: 400 },
+      );
+    }
+
+    if (typeof contactPhone !== "string" || contactPhone.trim().length === 0) {
+      return NextResponse.json(
+        { error: "contactPhone is required" },
+        { status: 400 },
+      );
+    }
+
     const shoppingCart = await prisma.shoppingCart.findUnique({
       where: { userId },
       include: {
@@ -53,6 +75,12 @@ export async function POST(req: Request) {
           throw new Error(`Product ${item.productId} not found`);
         }
 
+        if (item.quantity <= 0) {
+          throw new Error(
+            `Invalid quantity for product ${currentProduct.name}`,
+          );
+        }
+
         if (item.quantity > currentProduct.stockQuantity) {
           throw new Error(
             `Insufficient stock for product ${currentProduct.name}`,
@@ -66,6 +94,9 @@ export async function POST(req: Request) {
         data: {
           userId,
           totalAmountCents,
+          customerEmail: decoded.email,
+          shippingAddress,
+          contactPhone,
         },
       });
 
@@ -112,7 +143,8 @@ export async function POST(req: Request) {
 
     if (
       error instanceof Error &&
-      error.message.startsWith("Insufficient stock")
+      (error.message.startsWith("Insufficient stock") ||
+        error.message.startsWith("Invalid quantity"))
     ) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -179,7 +211,7 @@ export async function GET() {
           },
         },
       });
-    } else if (user.role.name === "CUSTOMER") {
+    } else if (user.role.name === "USER") {
       orders = await prisma.order.findMany({
         where: {
           userId,

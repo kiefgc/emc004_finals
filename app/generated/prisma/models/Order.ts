@@ -42,6 +42,9 @@ export type OrderMinAggregateOutputType = {
   totalAmountCents: number | null
   status: string | null
   createdAt: Date | null
+  customerEmail: string | null
+  shippingAddress: string | null
+  contactPhone: string | null
 }
 
 export type OrderMaxAggregateOutputType = {
@@ -50,6 +53,9 @@ export type OrderMaxAggregateOutputType = {
   totalAmountCents: number | null
   status: string | null
   createdAt: Date | null
+  customerEmail: string | null
+  shippingAddress: string | null
+  contactPhone: string | null
 }
 
 export type OrderCountAggregateOutputType = {
@@ -58,6 +64,9 @@ export type OrderCountAggregateOutputType = {
   totalAmountCents: number
   status: number
   createdAt: number
+  customerEmail: number
+  shippingAddress: number
+  contactPhone: number
   _all: number
 }
 
@@ -78,6 +87,9 @@ export type OrderMinAggregateInputType = {
   totalAmountCents?: true
   status?: true
   createdAt?: true
+  customerEmail?: true
+  shippingAddress?: true
+  contactPhone?: true
 }
 
 export type OrderMaxAggregateInputType = {
@@ -86,6 +98,9 @@ export type OrderMaxAggregateInputType = {
   totalAmountCents?: true
   status?: true
   createdAt?: true
+  customerEmail?: true
+  shippingAddress?: true
+  contactPhone?: true
 }
 
 export type OrderCountAggregateInputType = {
@@ -94,6 +109,9 @@ export type OrderCountAggregateInputType = {
   totalAmountCents?: true
   status?: true
   createdAt?: true
+  customerEmail?: true
+  shippingAddress?: true
+  contactPhone?: true
   _all?: true
 }
 
@@ -189,6 +207,9 @@ export type OrderGroupByOutputType = {
   totalAmountCents: number
   status: string
   createdAt: Date
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
   _count: OrderCountAggregateOutputType | null
   _avg: OrderAvgAggregateOutputType | null
   _sum: OrderSumAggregateOutputType | null
@@ -220,6 +241,9 @@ export type OrderWhereInput = {
   totalAmountCents?: Prisma.IntFilter<"Order"> | number
   status?: Prisma.StringFilter<"Order"> | string
   createdAt?: Prisma.DateTimeFilter<"Order"> | Date | string
+  customerEmail?: Prisma.StringFilter<"Order"> | string
+  shippingAddress?: Prisma.StringFilter<"Order"> | string
+  contactPhone?: Prisma.StringFilter<"Order"> | string
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   items?: Prisma.OrderItemListRelationFilter
 }
@@ -230,6 +254,9 @@ export type OrderOrderByWithRelationInput = {
   totalAmountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  customerEmail?: Prisma.SortOrder
+  shippingAddress?: Prisma.SortOrder
+  contactPhone?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   items?: Prisma.OrderItemOrderByRelationAggregateInput
 }
@@ -243,6 +270,9 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   totalAmountCents?: Prisma.IntFilter<"Order"> | number
   status?: Prisma.StringFilter<"Order"> | string
   createdAt?: Prisma.DateTimeFilter<"Order"> | Date | string
+  customerEmail?: Prisma.StringFilter<"Order"> | string
+  shippingAddress?: Prisma.StringFilter<"Order"> | string
+  contactPhone?: Prisma.StringFilter<"Order"> | string
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   items?: Prisma.OrderItemListRelationFilter
 }, "id">
@@ -253,6 +283,9 @@ export type OrderOrderByWithAggregationInput = {
   totalAmountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  customerEmail?: Prisma.SortOrder
+  shippingAddress?: Prisma.SortOrder
+  contactPhone?: Prisma.SortOrder
   _count?: Prisma.OrderCountOrderByAggregateInput
   _avg?: Prisma.OrderAvgOrderByAggregateInput
   _max?: Prisma.OrderMaxOrderByAggregateInput
@@ -269,12 +302,18 @@ export type OrderScalarWhereWithAggregatesInput = {
   totalAmountCents?: Prisma.IntWithAggregatesFilter<"Order"> | number
   status?: Prisma.StringWithAggregatesFilter<"Order"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Order"> | Date | string
+  customerEmail?: Prisma.StringWithAggregatesFilter<"Order"> | string
+  shippingAddress?: Prisma.StringWithAggregatesFilter<"Order"> | string
+  contactPhone?: Prisma.StringWithAggregatesFilter<"Order"> | string
 }
 
 export type OrderCreateInput = {
   totalAmountCents: number
   status?: string
   createdAt?: Date | string
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
   user?: Prisma.UserCreateNestedOneWithoutOrdersInput
   items?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
 }
@@ -285,6 +324,9 @@ export type OrderUncheckedCreateInput = {
   totalAmountCents: number
   status?: string
   createdAt?: Date | string
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
   items?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -292,6 +334,9 @@ export type OrderUpdateInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
   user?: Prisma.UserUpdateOneWithoutOrdersNestedInput
   items?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
 }
@@ -302,6 +347,9 @@ export type OrderUncheckedUpdateInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
   items?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -311,12 +359,18 @@ export type OrderCreateManyInput = {
   totalAmountCents: number
   status?: string
   createdAt?: Date | string
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
 }
 
 export type OrderUpdateManyMutationInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type OrderUncheckedUpdateManyInput = {
@@ -325,6 +379,9 @@ export type OrderUncheckedUpdateManyInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type OrderListRelationFilter = {
@@ -343,6 +400,9 @@ export type OrderCountOrderByAggregateInput = {
   totalAmountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  customerEmail?: Prisma.SortOrder
+  shippingAddress?: Prisma.SortOrder
+  contactPhone?: Prisma.SortOrder
 }
 
 export type OrderAvgOrderByAggregateInput = {
@@ -356,6 +416,9 @@ export type OrderMaxOrderByAggregateInput = {
   totalAmountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  customerEmail?: Prisma.SortOrder
+  shippingAddress?: Prisma.SortOrder
+  contactPhone?: Prisma.SortOrder
 }
 
 export type OrderMinOrderByAggregateInput = {
@@ -364,6 +427,9 @@ export type OrderMinOrderByAggregateInput = {
   totalAmountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  customerEmail?: Prisma.SortOrder
+  shippingAddress?: Prisma.SortOrder
+  contactPhone?: Prisma.SortOrder
 }
 
 export type OrderSumOrderByAggregateInput = {
@@ -436,6 +502,9 @@ export type OrderCreateWithoutUserInput = {
   totalAmountCents: number
   status?: string
   createdAt?: Date | string
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
   items?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
 }
 
@@ -444,6 +513,9 @@ export type OrderUncheckedCreateWithoutUserInput = {
   totalAmountCents: number
   status?: string
   createdAt?: Date | string
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
   items?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -482,12 +554,18 @@ export type OrderScalarWhereInput = {
   totalAmountCents?: Prisma.IntFilter<"Order"> | number
   status?: Prisma.StringFilter<"Order"> | string
   createdAt?: Prisma.DateTimeFilter<"Order"> | Date | string
+  customerEmail?: Prisma.StringFilter<"Order"> | string
+  shippingAddress?: Prisma.StringFilter<"Order"> | string
+  contactPhone?: Prisma.StringFilter<"Order"> | string
 }
 
 export type OrderCreateWithoutItemsInput = {
   totalAmountCents: number
   status?: string
   createdAt?: Date | string
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
   user?: Prisma.UserCreateNestedOneWithoutOrdersInput
 }
 
@@ -497,6 +575,9 @@ export type OrderUncheckedCreateWithoutItemsInput = {
   totalAmountCents: number
   status?: string
   createdAt?: Date | string
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
 }
 
 export type OrderCreateOrConnectWithoutItemsInput = {
@@ -519,6 +600,9 @@ export type OrderUpdateWithoutItemsInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
   user?: Prisma.UserUpdateOneWithoutOrdersNestedInput
 }
 
@@ -528,6 +612,9 @@ export type OrderUncheckedUpdateWithoutItemsInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type OrderCreateManyUserInput = {
@@ -535,12 +622,18 @@ export type OrderCreateManyUserInput = {
   totalAmountCents: number
   status?: string
   createdAt?: Date | string
+  customerEmail: string
+  shippingAddress: string
+  contactPhone: string
 }
 
 export type OrderUpdateWithoutUserInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
   items?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
 }
 
@@ -549,6 +642,9 @@ export type OrderUncheckedUpdateWithoutUserInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
   items?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -557,6 +653,9 @@ export type OrderUncheckedUpdateManyWithoutUserInput = {
   totalAmountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customerEmail?: Prisma.StringFieldUpdateOperationsInput | string
+  shippingAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contactPhone?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 
@@ -596,6 +695,9 @@ export type OrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   totalAmountCents?: boolean
   status?: boolean
   createdAt?: boolean
+  customerEmail?: boolean
+  shippingAddress?: boolean
+  contactPhone?: boolean
   user?: boolean | Prisma.Order$userArgs<ExtArgs>
   items?: boolean | Prisma.Order$itemsArgs<ExtArgs>
   _count?: boolean | Prisma.OrderCountOutputTypeDefaultArgs<ExtArgs>
@@ -607,6 +709,9 @@ export type OrderSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   totalAmountCents?: boolean
   status?: boolean
   createdAt?: boolean
+  customerEmail?: boolean
+  shippingAddress?: boolean
+  contactPhone?: boolean
   user?: boolean | Prisma.Order$userArgs<ExtArgs>
 }, ExtArgs["result"]["order"]>
 
@@ -616,6 +721,9 @@ export type OrderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   totalAmountCents?: boolean
   status?: boolean
   createdAt?: boolean
+  customerEmail?: boolean
+  shippingAddress?: boolean
+  contactPhone?: boolean
   user?: boolean | Prisma.Order$userArgs<ExtArgs>
 }, ExtArgs["result"]["order"]>
 
@@ -625,9 +733,12 @@ export type OrderSelectScalar = {
   totalAmountCents?: boolean
   status?: boolean
   createdAt?: boolean
+  customerEmail?: boolean
+  shippingAddress?: boolean
+  contactPhone?: boolean
 }
 
-export type OrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "totalAmountCents" | "status" | "createdAt", ExtArgs["result"]["order"]>
+export type OrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "totalAmountCents" | "status" | "createdAt" | "customerEmail" | "shippingAddress" | "contactPhone", ExtArgs["result"]["order"]>
 export type OrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.Order$userArgs<ExtArgs>
   items?: boolean | Prisma.Order$itemsArgs<ExtArgs>
@@ -652,6 +763,9 @@ export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     totalAmountCents: number
     status: string
     createdAt: Date
+    customerEmail: string
+    shippingAddress: string
+    contactPhone: string
   }, ExtArgs["result"]["order"]>
   composites: {}
 }
@@ -1082,6 +1196,9 @@ export interface OrderFieldRefs {
   readonly totalAmountCents: Prisma.FieldRef<"Order", 'Int'>
   readonly status: Prisma.FieldRef<"Order", 'String'>
   readonly createdAt: Prisma.FieldRef<"Order", 'DateTime'>
+  readonly customerEmail: Prisma.FieldRef<"Order", 'String'>
+  readonly shippingAddress: Prisma.FieldRef<"Order", 'String'>
+  readonly contactPhone: Prisma.FieldRef<"Order", 'String'>
 }
     
 
