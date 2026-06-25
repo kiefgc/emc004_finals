@@ -31,6 +31,16 @@ model User {
   @@map("users")
 }
 
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique // Hashed or cryptographically secure random string
+  email     String
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_reset_tokens")
+}
+
 model Product {
   id            Int         @id @default(autoincrement())
   name          String      @db.VarChar(150)

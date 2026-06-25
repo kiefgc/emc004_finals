@@ -10,6 +10,7 @@
  */
 export type * from './models/Role'
 export type * from './models/User'
+export type * from './models/PasswordResetToken'
 export type * from './models/Product'
 export type * from './models/ShoppingCart'
 export type * from './models/CartItem'
