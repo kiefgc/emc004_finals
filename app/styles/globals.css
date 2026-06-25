@@ -49,6 +49,8 @@ html {
 }
 
 body {
+  display: flex;
+  flex-direction: column;
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family:
@@ -542,4 +544,114 @@ a {
 
 .auth-forgot a:hover {
   text-decoration: underline;
+}
+
+.auth-success {
+  color: var(--success);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.reset-token-box {
+  background: var(--bg-secondary);
+
+  border: 1px dashed var(--primary);
+
+  border-radius: var(--radius-sm);
+
+  padding: 1rem;
+
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+
+  text-align: center;
+
+  font-family: monospace;
+
+  color: var(--primary);
+
+  word-break: break-all;
+}
+
+/* ============================= */
+/* AUTH UPDATES                  */
+/* ============================= */
+
+/* Turn the button into a clean, text-only link layout */
+.auth-forgot button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.auth-forgot button:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+/* Optional adjustment: Fixes the margin spacing to tighten up the layout */
+.auth-forgot {
+  text-align: right;
+  margin-top: -0.5rem; /* Pulls it slightly closer to the password field */
+  margin-bottom: 1.25rem; /* Matches the standard bottom group spacing */
+}
+
+.hero-section {
+  padding: 6rem 0;
+}
+
+.hero-content {
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+  max-width: 700px;
+  margin: auto;
+
+  color: var(--text-secondary);
+
+  font-size: 1.15rem;
+
+  margin-bottom: 2rem;
+}
+
+/* ============================= */
+/* LANDING PAGE THINGS           */
+/* ============================= */
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+
+  justify-content: center;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.logo {
+  cursor: pointer;
+}
+
+/* ============================= */
+/* BACK BUTTON                   */
+/* ============================= */
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
