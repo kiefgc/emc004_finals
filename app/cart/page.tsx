@@ -85,6 +85,7 @@ export default function CartPage() {
       body: JSON.stringify({
         productId,
         quantity,
+        mode: "set",
       }),
     });
 

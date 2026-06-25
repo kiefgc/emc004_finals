@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 
@@ -28,7 +30,35 @@ export default function CartItem({
   onQuantityChange,
   onRemove,
 }: CartItemProps) {
-  const subtotal = item.quantity * item.product.priceCents;
+  const [editing, setEditing] = useState(false);
+
+  const [draftQuantity, setDraftQuantity] = useState(item.quantity);
+
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDraftQuantity(item.quantity);
+  }, [item.quantity]);
+
+  const subtotal = draftQuantity * item.product.priceCents;
+
+  async function saveQuantity() {
+    setSaving(true);
+
+    try {
+      await onQuantityChange(item.productId, draftQuantity);
+
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function cancelEditing() {
+    setDraftQuantity(item.quantity);
+
+    setEditing(false);
+  }
 
   return (
     <Card className="mb-3">
@@ -62,35 +92,71 @@ export default function CartItem({
           <div className="mt-2 mb-2">
             <strong>Quantity:</strong>
 
-            <div
-              style={{
-                display: "flex",
-                gap: "0.75rem",
-                alignItems: "center",
-                marginTop: "0.5rem",
-              }}
-            >
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  onQuantityChange(item.productId, item.quantity - 1)
-                }
-                disabled={item.quantity <= 1}
+            {!editing ? (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1rem",
+                  alignItems: "center",
+                  marginTop: "0.5rem",
+                }}
               >
-                -
-              </Button>
+                <span>{item.quantity}</span>
 
-              <span>{item.quantity}</span>
-
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  onQuantityChange(item.productId, item.quantity + 1)
-                }
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  Edit
+                </Button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.75rem",
+                  alignItems: "center",
+                  marginTop: "0.5rem",
+                }}
               >
-                +
-              </Button>
-            </div>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    setDraftQuantity((current) => Math.max(1, current - 1))
+                  }
+                  disabled={draftQuantity <= 1}
+                >
+                  -
+                </Button>
+
+                <span>{draftQuantity}</span>
+
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    setDraftQuantity((current) =>
+                      Math.min(item.product.stockQuantity, current + 1),
+                    )
+                  }
+                  disabled={draftQuantity >= item.product.stockQuantity}
+                >
+                  +
+                </Button>
+
+                <Button
+                  variant="primary"
+                  onClick={saveQuantity}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save"}
+                </Button>
+
+                <Button
+                  variant="danger"
+                  onClick={cancelEditing}
+                  disabled={saving}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
 
           <p className="mt-2">

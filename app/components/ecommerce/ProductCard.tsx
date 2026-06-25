@@ -1,5 +1,6 @@
+"use client";
+
 import Card from "@/app/components/ui/Card";
-import Button from "@/app/components/ui/Button";
 
 interface Product {
   id: number;
@@ -16,6 +17,34 @@ interface Props {
 }
 
 export default function ProductCard({ product, isLoggedIn }: Props) {
+  async function handleAddToCart() {
+    if (!isLoggedIn) {
+      alert("Please log in first.");
+      return;
+    }
+
+    const response = await fetch("/api/cart", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        productId: product.id,
+        quantity: 1,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || "Failed to add to cart.");
+      return;
+    }
+
+    alert("Added to cart successfully.");
+  }
+
   return (
     <Card>
       <img
@@ -34,7 +63,9 @@ export default function ProductCard({ product, isLoggedIn }: Props) {
 
       <p className="stock">Stock Available: {product.stockQuantity}</p>
 
-      <button className="btn btn-primary w-full mt-2">Add to Cart</button>
+      <button className="btn btn-primary w-full mt-2" onClick={handleAddToCart}>
+        Add to Cart
+      </button>
     </Card>
   );
 }
