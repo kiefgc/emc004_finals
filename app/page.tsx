@@ -107,8 +107,6 @@ export default async function HomePage() {
           <div className="container">
             <div className="section-header">
               <h2>Featured Products</h2>
-
-              <p>Products currently available in inventory.</p>
             </div>
 
             <div className="grid grid-products">

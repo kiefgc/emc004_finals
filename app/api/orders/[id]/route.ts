@@ -84,33 +84,20 @@ export async function PATCH(
     }
 
     const decoded = jwt.verify(auth_token.value, process.env.JWT_SECRET) as {
+      id: string;
       role: string;
     };
-
-    // 2. Authorization Check (Admin only)
-    if (decoded.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     const orderId = parseInt(id, 10);
     if (isNaN(orderId)) {
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
     }
 
-    // 3. Parse and Validate Body
+    // 2. Parse and Validate Body
     const { status } = await req.json();
-    const validStatuses = ["confirmed", "delivered", "cancelled"];
+    const validAdminStatuses = ["confirmed", "delivered", "cancelled"];
 
-    if (!status || !validStatuses.includes(status)) {
-      return NextResponse.json(
-        {
-          error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
-        },
-        { status: 400 },
-      );
-    }
-
-    // 4. Update Order Status (+ restock inventory if cancelling)
+    // 3. Process DB Updates and Permissions inside Transaction
     const updatedOrder = await prisma.$transaction(async (tx) => {
       const existingOrder = await tx.order.findUnique({
         where: { id: orderId },
@@ -118,14 +105,41 @@ export async function PATCH(
       });
 
       if (!existingOrder) {
-        // Let the outer catch translate this into a 404 via the same
-        // "not found" message used below, keeping behavior consistent.
         throw Object.assign(new Error("Order not found"), { code: "P2025" });
       }
 
-      // Only restock if we're transitioning INTO "cancelled" from some
-      // other status. This guards against double-restocking if an already
-      // cancelled order is "cancelled" again.
+      // --- AUTHORIZATION MATRIX ---
+      const isAdmin = decoded.role === "ADMIN";
+      const isOwner = existingOrder.userId === decoded.id;
+
+      if (isAdmin) {
+        // Admins must supply a valid admin status
+        if (!status || !validAdminStatuses.includes(status)) {
+          throw new Error("BAD_REQUEST: Invalid status for admin.");
+        }
+      } else if (isOwner) {
+        // Users can ONLY change status to 'cancelled'
+        if (status !== "cancelled") {
+          throw new Error(
+            "FORBIDDEN: Users are only permitted to cancel orders.",
+          );
+        }
+        // Users can't cancel an order that is already shipped/completed
+        if (
+          existingOrder.status === "delivered" ||
+          existingOrder.status === "confirmed"
+        ) {
+          throw new Error(
+            "BAD_REQUEST: Cannot cancel an order that has already been processed or delivered.",
+          );
+        }
+      } else {
+        // Neither Admin nor Owner
+        throw new Error("FORBIDDEN: Not authorized to modify this order.");
+      }
+      // ----------------------------------------
+
+      // Only restock if transitioning INTO "cancelled"
       const isNewlyCancelled =
         status === "cancelled" && existingOrder.status !== "cancelled";
 
@@ -154,8 +168,19 @@ export async function PATCH(
   } catch (error: any) {
     console.error(error);
 
-    // Handle specific Prisma error for missing record (and our own
-    // manually-thrown "Order not found" above)
+    // Translate our custom transaction validation errors to HTTP Responses
+    if (error.message?.startsWith("FORBIDDEN")) {
+      return NextResponse.json(
+        { error: error.message.split(": ")[1] },
+        { status: 403 },
+      );
+    }
+    if (error.message?.startsWith("BAD_REQUEST")) {
+      return NextResponse.json(
+        { error: error.message.split(": ")[1] },
+        { status: 400 },
+      );
+    }
     if (error.code === "P2025") {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }

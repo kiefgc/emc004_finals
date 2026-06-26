@@ -45,6 +45,16 @@ export default function CartPage() {
 
   const [error, setError] = useState("");
 
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+
+  const [placingOrder, setPlacingOrder] = useState(false);
+
+  const [checkoutError, setCheckoutError] = useState("");
+
+  const addressRegex = /^[a-zA-Z0-9\s,.\-#/]+$/;
+  const phoneRegex = /^\d+$/;
+
   useEffect(() => {
     fetchCart();
   }, []);
@@ -153,6 +163,61 @@ export default function CartPage() {
     }
   }
 
+  async function handleCheckout() {
+    setCheckoutError("");
+
+    if (!shippingAddress.trim()) {
+      setCheckoutError("Shipping address is required.");
+      return;
+    }
+
+    if (!addressRegex.test(shippingAddress.trim())) {
+      setCheckoutError("Shipping address contains invalid characters.");
+      return;
+    }
+
+    if (!contactPhone.trim()) {
+      setCheckoutError("Contact phone is required.");
+      return;
+    }
+
+    if (!phoneRegex.test(contactPhone.trim())) {
+      setCheckoutError("Contact number may only contain digits.");
+      return;
+    }
+
+    try {
+      setPlacingOrder(true);
+
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          shippingAddress,
+          contactPhone,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setCheckoutError(data.error || "Failed to place order.");
+        return;
+      }
+
+      alert("Order placed successfully!");
+
+      setCart(null);
+
+      window.location.href = "/orders";
+    } finally {
+      setPlacingOrder(false);
+    }
+  }
+
   const totalCents =
     cart?.items.reduce(
       (sum, item) => sum + item.quantity * item.product.priceCents,
@@ -207,12 +272,36 @@ export default function CartPage() {
             <p className="mt-2">Items: {totalItems}</p>
 
             <p className="mt-2">Total: ₱{(totalCents / 100).toFixed(2)}</p>
+          </Card>
+          <Card className="mt-4">
+            <h2 className="mb-3">Checkout</h2>
 
-            <div className="mt-3">
-              <Button onClick={checkout} disabled={checkoutLoading}>
-                {checkoutLoading ? "Processing..." : "Checkout"}
-              </Button>
+            <div className="auth-group">
+              <label>Shipping Address</label>
+              <textarea
+                className="textarea"
+                value={shippingAddress}
+                onChange={(e) => setShippingAddress(e.target.value)}
+              />
             </div>
+
+            <div className="auth-group">
+              <label>Contact Number</label>
+              <input
+                className="input"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+              />
+            </div>
+
+            <Button
+              onClick={handleCheckout}
+              disabled={placingOrder || cart.items.length === 0}
+            >
+              {placingOrder
+                ? "Placing Order..."
+                : `Place Order • ₱${(totalCents / 100).toFixed(2)}`}
+            </Button>
           </Card>
         </>
       )}

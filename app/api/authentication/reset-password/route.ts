@@ -13,6 +13,17 @@ export async function POST(req: Request) {
       );
     }
 
+    const passwordRegex = /^(?=.*[^A-Za-z0-9])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return NextResponse.json(
+        {
+          error:
+            "Password must be at least 8 characters long, contain a number, and a special character.",
+        },
+        { status: 400 },
+      );
+    }
+
     const resetEntry = await prisma.passwordResetToken.findUnique({
       where: { token },
     });

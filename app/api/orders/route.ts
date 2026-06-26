@@ -3,6 +3,12 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 
+interface JWTPayload {
+  id: string;
+  email: string;
+  role: string;
+}
+
 export async function POST(req: Request) {
   const cookieStore = await cookies();
   const auth_token = cookieStore.get("auth_token");
@@ -16,16 +22,13 @@ export async function POST(req: Request) {
       throw new Error("JWT_SECRET not configured");
     }
 
-    const decoded = jwt.verify(auth_token.value, process.env.JWT_SECRET) as {
-      id: string;
-      email: string;
-      role: string;
-    };
-
+    const decoded = jwt.verify(
+      auth_token.value,
+      process.env.JWT_SECRET,
+    ) as JWTPayload;
     const userId = decoded.id;
 
     const body = await req.json().catch(() => null);
-
     const shippingAddress = body?.shippingAddress;
     const contactPhone = body?.contactPhone;
 
@@ -46,13 +49,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // 1. Fetch the shopping cart with its items
     const shoppingCart = await prisma.shoppingCart.findUnique({
       where: { userId },
       include: {
         items: {
-          include: {
-            product: true,
-          },
+          include: { product: true },
         },
       },
     });
@@ -61,18 +63,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    const tx = await prisma.$transaction(async (tx) => {
+    // Execute database mutations inside a transaction to ensure integrity
+    const placedOrder = await prisma.$transaction(async (tx) => {
+      const productIds = shoppingCart.items.map((item) => item.productId);
+
+      const dbProducts = await tx.product.findMany({
+        where: {
+          id: { in: productIds },
+        },
+      });
+
+      // Map products by ID for fast O(1) lookups in memory
+      const productMap = new Map(dbProducts.map((p) => [p.id, p]));
       let totalAmountCents = 0;
 
+      // 2. Validate quantities and stock in-memory using the mapped data
       for (const item of shoppingCart.items) {
-        const currentProduct = await tx.product.findUnique({
-          where: {
-            id: item.productId,
-          },
-        });
+        const currentProduct = productMap.get(item.productId);
 
         if (!currentProduct) {
-          throw new Error(`Product ${item.productId} not found`);
+          throw new Error(
+            `Product ${item.productId} not found or no longer available`,
+          );
         }
 
         if (item.quantity <= 0) {
@@ -90,6 +102,7 @@ export async function POST(req: Request) {
         totalAmountCents += item.quantity * currentProduct.priceCents;
       }
 
+      // 3. Create the order record (Database will apply the default "PENDING" status automatically)
       const order = await tx.order.create({
         data: {
           userId,
@@ -100,6 +113,7 @@ export async function POST(req: Request) {
         },
       });
 
+      // 4. Batch insert all order items at once
       await tx.orderItem.createMany({
         data: shoppingCart.items.map((item) => ({
           orderId: order.id,
@@ -109,23 +123,21 @@ export async function POST(req: Request) {
         })),
       });
 
+      // 5. Update stock quantities
+      // Note: While this still runs loops, it only handles updates, which cannot be grouped cleanly
+      // without raw SQL or a bulk-update strategy if your DB engine supports it.
       for (const item of shoppingCart.items) {
         await tx.product.update({
-          where: {
-            id: item.productId,
-          },
+          where: { id: item.productId },
           data: {
-            stockQuantity: {
-              decrement: item.quantity,
-            },
+            stockQuantity: { decrement: item.quantity },
           },
         });
       }
 
+      // 6. Clear the shopping cart items
       await tx.cartItem.deleteMany({
-        where: {
-          cartId: shoppingCart.id,
-        },
+        where: { cartId: shoppingCart.id },
       });
 
       return order;
@@ -134,7 +146,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         message: "Order placed successfully",
-        orderId: tx.id,
+        order: placedOrder,
       },
       { status: 201 },
     );
@@ -144,7 +156,8 @@ export async function POST(req: Request) {
     if (
       error instanceof Error &&
       (error.message.startsWith("Insufficient stock") ||
-        error.message.startsWith("Invalid quantity"))
+        error.message.startsWith("Invalid quantity") ||
+        error.message.includes("not found"))
     ) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -169,61 +182,32 @@ export async function GET() {
       throw new Error("JWT_SECRET not configured");
     }
 
-    const decoded = jwt.verify(auth_token.value, process.env.JWT_SECRET) as {
-      id: string;
-      email: string;
-      role: string;
-    };
-
-    const userId = decoded.id;
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      include: {
-        role: true,
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    const decoded = jwt.verify(
+      auth_token.value,
+      process.env.JWT_SECRET,
+    ) as JWTPayload;
 
     let orders;
 
-    if (user.role.name === "ADMIN") {
+    if (decoded.role === "ADMIN") {
       orders = await prisma.order.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
         include: {
           items: {
-            include: {
-              product: true,
-            },
+            include: { product: true },
           },
           user: {
-            select: {
-              id: true,
-              email: true,
-            },
+            select: { id: true, email: true },
           },
         },
       });
-    } else if (user.role.name === "USER") {
+    } else if (decoded.role === "USER") {
       orders = await prisma.order.findMany({
-        where: {
-          userId,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
+        where: { userId: decoded.id },
+        orderBy: { createdAt: "desc" },
         include: {
           items: {
-            include: {
-              product: true,
-            },
+            include: { product: true },
           },
         },
       });
@@ -231,12 +215,9 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json(orders, {
-      status: 200,
-    });
+    return NextResponse.json(orders, { status: 200 });
   } catch (error) {
     console.error(error);
-
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
