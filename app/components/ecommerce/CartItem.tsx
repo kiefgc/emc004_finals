@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 
@@ -19,9 +18,12 @@ interface CartItemProps {
       imageUrl: string;
     };
   };
-
-  onQuantityChange: (productId: number, quantity: number) => Promise<void>;
-
+  // Updated type signature to accept the optional third parameter for real-time skipping
+  onQuantityChange: (
+    productId: number,
+    quantity: number,
+    skipApi?: boolean,
+  ) => Promise<void>;
   onRemove: (cartItemId: number) => Promise<void>;
 }
 
@@ -31,9 +33,7 @@ export default function CartItem({
   onRemove,
 }: CartItemProps) {
   const [editing, setEditing] = useState(false);
-
   const [draftQuantity, setDraftQuantity] = useState(item.quantity);
-
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -44,11 +44,12 @@ export default function CartItem({
 
   async function saveQuantity() {
     setSaving(true);
-
     try {
-      await onQuantityChange(item.productId, draftQuantity);
-
+      // Fires the API call to save the final draft number to the database
+      await onQuantityChange(item.productId, draftQuantity, false);
       setEditing(false);
+    } catch (error) {
+      console.error("Failed to save quantity", error);
     } finally {
       setSaving(false);
     }
@@ -56,7 +57,8 @@ export default function CartItem({
 
   function cancelEditing() {
     setDraftQuantity(item.quantity);
-
+    // Reverts parent page summary totals back to original values
+    onQuantityChange(item.productId, item.quantity, true);
     setEditing(false);
   }
 
@@ -86,6 +88,7 @@ export default function CartItem({
           <div className="product-price">
             ₱{(item.product.priceCents / 100).toFixed(2)}
           </div>
+
           <div className="mt-2 mb-2">
             <strong>Quantity:</strong>
 
@@ -99,7 +102,6 @@ export default function CartItem({
                 }}
               >
                 <span>{item.quantity}</span>
-
                 <Button variant="secondary" onClick={() => setEditing(true)}>
                   Edit
                 </Button>
@@ -115,10 +117,13 @@ export default function CartItem({
               >
                 <Button
                   variant="secondary"
-                  onClick={() =>
-                    setDraftQuantity((current) => Math.max(1, current - 1))
-                  }
-                  disabled={draftQuantity <= 1}
+                  onClick={() => {
+                    const nextQty = Math.max(1, draftQuantity - 1);
+                    setDraftQuantity(nextQty);
+                    // Instantly updates parent summary state without DB overhead
+                    onQuantityChange(item.productId, nextQty, true);
+                  }}
+                  disabled={draftQuantity <= 1 || saving}
                 >
                   -
                 </Button>
@@ -127,12 +132,18 @@ export default function CartItem({
 
                 <Button
                   variant="secondary"
-                  onClick={() =>
-                    setDraftQuantity((current) =>
-                      Math.min(item.product.stockQuantity, current + 1),
-                    )
+                  onClick={() => {
+                    const nextQty = Math.min(
+                      item.product.stockQuantity,
+                      draftQuantity + 1,
+                    );
+                    setDraftQuantity(nextQty);
+                    // Instantly updates parent summary state without DB overhead
+                    onQuantityChange(item.productId, nextQty, true);
+                  }}
+                  disabled={
+                    draftQuantity >= item.product.stockQuantity || saving
                   }
-                  disabled={draftQuantity >= item.product.stockQuantity}
                 >
                   +
                 </Button>
@@ -155,11 +166,11 @@ export default function CartItem({
               </div>
             )}
           </div>
+
           <p className="mt-2">
-            {/* Multiplying draftQuantity ensures this number changes instantly when + or - is clicked */}
-            <strong>Subtotal:</strong> ₱
-            {((draftQuantity * item.product.priceCents) / 100).toFixed(2)}
+            <strong>Subtotal:</strong> ₱{(subtotal / 100).toFixed(2)}
           </p>
+
           <div className="mt-3">
             <Button variant="danger" onClick={() => onRemove(item.id)}>
               Remove
