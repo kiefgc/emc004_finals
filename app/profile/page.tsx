@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import ProfileActions from "@/app/components/profile/ProfileActions";
 import BackButton from "@/app/components/navigation/BackButton";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
 async function getCurrentUser() {
   const cookieStore = await cookies();
 
-  const response = await fetch("http://localhost:3000/api/authentication/me", {
+  const response = await fetch(`${BASE_URL}/api/authentication/me`, {
     headers: {
       Cookie: cookieStore.toString(),
     },
