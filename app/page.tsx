@@ -2,6 +2,8 @@ import Navbar from "@/app/components/layout/Navbar";
 import ProductCard from "@/app/components/ecommerce/ProductCard";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 const cookieStore = await cookies();
 
 const response = await fetch("http://localhost:3000/api/authentication/me", {

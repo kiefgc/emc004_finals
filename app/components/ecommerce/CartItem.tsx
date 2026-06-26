@@ -82,13 +82,10 @@ export default function CartItem({
 
         <div>
           <h3>{item.product.name}</h3>
-
           <p className="mb-2">{item.product.description}</p>
-
           <div className="product-price">
             ₱{(item.product.priceCents / 100).toFixed(2)}
           </div>
-
           <div className="mt-2 mb-2">
             <strong>Quantity:</strong>
 
@@ -158,11 +155,12 @@ export default function CartItem({
               </div>
             )}
           </div>
-
+          // Inside CartItem.tsx
           <p className="mt-2">
-            <strong>Subtotal:</strong> ₱{(subtotal / 100).toFixed(2)}
+            {/* Multiplying draftQuantity ensures this number changes instantly when + or - is clicked */}
+            <strong>Subtotal:</strong> ₱
+            {((draftQuantity * item.product.priceCents) / 100).toFixed(2)}
           </p>
-
           <div className="mt-3">
             <Button variant="danger" onClick={() => onRemove(item.id)}>
               Remove
