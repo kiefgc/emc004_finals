@@ -4,40 +4,43 @@ import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
-const cookieStore = await cookies();
-
-const response = await fetch("http://localhost:3000/api/authentication/me", {
-  headers: {
-    Cookie: cookieStore.toString(),
-  },
-  cache: "no-store",
-});
+// Get the base URL dynamically based on the environment (Local vs Vercel)
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 async function getProducts() {
-  const response = await fetch("http://localhost:3000/api/products", {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(`${BASE_URL}/api/products`, {
+      cache: "no-store",
+    });
 
-  if (!response.ok) return [];
-
-  return response.json();
+    if (!response.ok) return [];
+    return response.json();
+  } catch (error) {
+    console.error("Failed to fetch products:", error);
+    return [];
+  }
 }
 
 async function getCurrentUser() {
-  const cookieStore = await cookies();
+  try {
+    const cookieStore = await cookies();
 
-  const response = await fetch("http://localhost:3000/api/authentication/me", {
-    headers: {
-      Cookie: cookieStore.toString(),
-    },
-    cache: "no-store",
-  });
+    const response = await fetch(`${BASE_URL}/api/authentication/me`, {
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Failed to fetch user:", error);
     return null;
   }
-
-  return response.json();
 }
 
 export default async function HomePage() {

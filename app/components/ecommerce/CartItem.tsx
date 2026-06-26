@@ -155,7 +155,6 @@ export default function CartItem({
               </div>
             )}
           </div>
-          // Inside CartItem.tsx
           <p className="mt-2">
             {/* Multiplying draftQuantity ensures this number changes instantly when + or - is clicked */}
             <strong>Subtotal:</strong> ₱
