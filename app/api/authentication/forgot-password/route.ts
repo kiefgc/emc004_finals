@@ -13,23 +13,29 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({ where: { email } });
 
+    let generatedToken: string | null = null;
+
     if (user) {
-      const token = randomUUID();
+      generatedToken = randomUUID();
       const expiresAt = new Date(Date.now() + 3600000);
 
       await prisma.passwordResetToken.create({
-        data: { email, token, expiresAt },
+        data: { email, token: generatedToken, expiresAt },
       });
 
-      const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}&email=${email}`;
+      const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${generatedToken}&email=${email}`;
 
       console.log(`[QA ONLY] Password reset link for ${email}: ${resetLink}`);
+    } else {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json({
-      message: "If an account exists, a reset link has been generated.",
+      message: "Reset token created",
+      token: generatedToken,
     });
   } catch (error) {
+    console.error("Forgot password error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+// Imported your custom ConfirmModal
+import ConfirmModal from "@/app/components/ui/ConfirmModal";
 
 type AuthMode = "login" | "register" | "forgot";
 
@@ -19,6 +21,9 @@ export default function AuthForm() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // New state to control the test-token modal popup visibility
+  const [showTokenPopup, setShowTokenPopup] = useState(false);
 
   async function handleLoginOrRegister(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -105,8 +110,10 @@ export default function AuthForm() {
       }
 
       setGeneratedToken(data.token);
-
       setSuccess("Reset token generated successfully.");
+
+      // Trigger the local modal popup to display the token on screen
+      setShowTokenPopup(true);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unexpected error occurred.",
@@ -284,21 +291,21 @@ export default function AuthForm() {
               Request Reset Token
             </button>
 
-            {generatedToken && (
+            {/* {generatedToken && (
               <div className="mt-2">
                 <p className="text-sm text-gray-500">Development Mode Token:</p>
                 <div className="reset-token-box p-2 bg-gray-100 border rounded font-mono text-center my-1 text-sm">
                   {generatedToken}
                 </div>
               </div>
-            )}
+            )} */}
 
             <div className="auth-group mt-4">
               <label>Reset Token</label>
               <input
                 className="input"
                 type="text"
-                value={resetToken}
+                value={resetToken || ""}
                 onChange={(e) => setResetToken(e.target.value)}
               />
             </div>
@@ -308,7 +315,7 @@ export default function AuthForm() {
               <input
                 className="input"
                 type="password"
-                value={newPassword}
+                value={newPassword || ""}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
             </div>
@@ -332,6 +339,21 @@ export default function AuthForm() {
           </form>
         )}
       </div>
+
+      {/* Development Testing Popup Modal */}
+      <ConfirmModal
+        open={showTokenPopup}
+        title="[DEV ONLY] Reset Token Intercepted"
+        message={`Here is the generated testing token: ${generatedToken}`}
+        confirmText="Autofill Token"
+        cancelText="Close"
+        onCancel={() => setShowTokenPopup(false)}
+        onConfirm={() => {
+          // Injects the token straight into the state field so you don't have to copy-paste it
+          setResetToken(generatedToken);
+          setShowTokenPopup(false);
+        }}
+      />
     </div>
   );
 }

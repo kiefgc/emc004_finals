@@ -7,6 +7,8 @@ import CartItem from "@/app/components/ecommerce/CartItem";
 import BackButton from "@/app/components/navigation/BackButton";
 import Card from "@/app/components/ui/Card";
 import Button from "@/app/components/ui/Button";
+// Imported ConfirmModal
+import ConfirmModal from "@/app/components/ui/ConfirmModal";
 
 interface Cart {
   id: number;
@@ -38,19 +40,18 @@ export default function CartPage() {
   const router = useRouter();
 
   const [cart, setCart] = useState<Cart | null>(null);
-
   const [loading, setLoading] = useState(true);
-
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-
   const [error, setError] = useState("");
 
   const [shippingAddress, setShippingAddress] = useState("");
   const [contactPhone, setContactPhone] = useState("");
 
   const [placingOrder, setPlacingOrder] = useState(false);
-
   const [checkoutError, setCheckoutError] = useState("");
+
+  // New state to control the modal visibility
+  const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
 
   const addressRegex = /^[a-zA-Z0-9\s,.\-#/]+$/;
   const phoneRegex = /^\d+$/;
@@ -69,7 +70,6 @@ export default function CartPage() {
 
       if (!response.ok) {
         setError(data.error || "Failed to load cart");
-
         return;
       }
 
@@ -140,30 +140,8 @@ export default function CartPage() {
     });
   }
 
-  async function checkout() {
-    setCheckoutLoading(true);
-
-    try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.error || "Checkout failed");
-
-        return;
-      }
-
-      router.push(`/orders/${data.id}`);
-    } finally {
-      setCheckoutLoading(false);
-    }
-  }
-
-  async function handleCheckout() {
+  // 1. Step one: Validate inputs first, then trigger the confirmation modal
+  function handleCheckout() {
     setCheckoutError("");
 
     if (!shippingAddress.trim()) {
@@ -186,6 +164,12 @@ export default function CartPage() {
       return;
     }
 
+    // Input data looks great! Show confirmation modal instead of calling API immediately
+    setShowCheckoutConfirm(true);
+  }
+
+  // 2. Step two: Fired when user explicitly clicks "Confirm" in the modal
+  async function executeOrderPlacement() {
     try {
       setPlacingOrder(true);
 
@@ -205,13 +189,12 @@ export default function CartPage() {
 
       if (!response.ok) {
         setCheckoutError(data.error || "Failed to place order.");
+        setShowCheckoutConfirm(false); // Close the modal on backend errors to expose the error banner
         return;
       }
 
       alert("Order placed successfully!");
-
       setCart(null);
-
       window.location.href = "/orders";
     } finally {
       setPlacingOrder(false);
@@ -250,9 +233,7 @@ export default function CartPage() {
           <p className="mt-2">Add some products to get started.</p>
 
           <div className="mt-3">
-            <Button onClick={() => router.push("/products")}>
-              Browse Products
-            </Button>
+            <Button onClick={() => router.push("/")}>Browse Products</Button>
           </div>
         </Card>
       ) : (
@@ -273,8 +254,14 @@ export default function CartPage() {
 
             <p className="mt-2">Total: ₱{(totalCents / 100).toFixed(2)}</p>
           </Card>
+
           <Card className="mt-4">
             <h2 className="mb-3">Checkout</h2>
+
+            {/* Display validation or checkout errors locally if any exist */}
+            {checkoutError && (
+              <p className="auth-error mb-3">{checkoutError}</p>
+            )}
 
             <div className="auth-group">
               <label>Shipping Address</label>
@@ -305,6 +292,16 @@ export default function CartPage() {
           </Card>
         </>
       )}
+
+      {/* 3. The New Checkout Confirmation Modal */}
+      <ConfirmModal
+        open={showCheckoutConfirm}
+        title="Confirm Your Order"
+        message={`Are you ready to finalize this order? You will be billed ₱${(totalCents / 100).toFixed(2)}.`}
+        confirmText={placingOrder ? "Placing Order..." : "Confirm & Pay"}
+        onCancel={() => setShowCheckoutConfirm(false)}
+        onConfirm={executeOrderPlacement}
+      />
     </div>
   );
 }

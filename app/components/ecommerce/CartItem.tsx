@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
+import ConfirmModal from "@/app/components/ui/ConfirmModal";
 
 interface CartItemProps {
   item: {
@@ -18,7 +19,6 @@ interface CartItemProps {
       imageUrl: string;
     };
   };
-  // Updated type signature to accept the optional third parameter for real-time skipping
   onQuantityChange: (
     productId: number,
     quantity: number,
@@ -36,6 +36,10 @@ export default function CartItem({
   const [draftQuantity, setDraftQuantity] = useState(item.quantity);
   const [saving, setSaving] = useState(false);
 
+  // 1. Added state to track whether this specific item's modal is open
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
   useEffect(() => {
     setDraftQuantity(item.quantity);
   }, [item.quantity]);
@@ -45,7 +49,6 @@ export default function CartItem({
   async function saveQuantity() {
     setSaving(true);
     try {
-      // Fires the API call to save the final draft number to the database
       await onQuantityChange(item.productId, draftQuantity, false);
       setEditing(false);
     } catch (error) {
@@ -57,7 +60,6 @@ export default function CartItem({
 
   function cancelEditing() {
     setDraftQuantity(item.quantity);
-    // Reverts parent page summary totals back to original values
     onQuantityChange(item.productId, item.quantity, true);
     setEditing(false);
   }
@@ -120,7 +122,6 @@ export default function CartItem({
                   onClick={() => {
                     const nextQty = Math.max(1, draftQuantity - 1);
                     setDraftQuantity(nextQty);
-                    // Instantly updates parent summary state without DB overhead
                     onQuantityChange(item.productId, nextQty, true);
                   }}
                   disabled={draftQuantity <= 1 || saving}
@@ -138,7 +139,6 @@ export default function CartItem({
                       draftQuantity + 1,
                     );
                     setDraftQuantity(nextQty);
-                    // Instantly updates parent summary state without DB overhead
                     onQuantityChange(item.productId, nextQty, true);
                   }}
                   disabled={
@@ -172,12 +172,34 @@ export default function CartItem({
           </p>
 
           <div className="mt-3">
-            <Button variant="danger" onClick={() => onRemove(item.id)}>
+            {/* 2. Triggers the local state to open the modal */}
+            <Button variant="danger" onClick={() => setShowConfirm(true)}>
               Remove
             </Button>
           </div>
         </div>
       </div>
+
+      {/* 3. The modal is now safely nested inside the component return statement */}
+      <ConfirmModal
+        open={showConfirm}
+        title="Remove Item"
+        message={`Remove ${item.product.name} from your cart?`}
+        confirmText={removing ? "Removing..." : "Remove"}
+        danger
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={async () => {
+          setRemoving(true);
+          try {
+            await onRemove(item.id);
+          } catch (error) {
+            console.error("Failed to remove item", error);
+          } finally {
+            setRemoving(false);
+            setShowConfirm(false);
+          }
+        }}
+      />
     </Card>
   );
 }

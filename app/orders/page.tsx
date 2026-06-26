@@ -7,6 +7,8 @@ import Card from "@/app/components/ui/Card";
 import Button from "@/app/components/ui/Button";
 import Badge from "@/app/components/ui/Badge";
 import BackButton from "@/app/components/navigation/BackButton";
+// Imported the ConfirmModal
+import ConfirmModal from "@/app/components/ui/ConfirmModal";
 
 interface Order {
   id: number;
@@ -39,6 +41,10 @@ export default function OrdersPage() {
   const [expanded, setExpanded] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // States to manage the modal interaction
+  const [orderToCancel, setOrderToCancel] = useState<number | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -61,35 +67,44 @@ export default function OrdersPage() {
   }
 
   async function cancelOrder(orderId: number) {
-    const response = await fetch(`/api/orders/${orderId}`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        status: "cancelled",
-      }),
-    });
+    setCancelling(true);
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "cancelled",
+        }),
+      });
 
-    const updatedOrder = await response.json();
+      const updatedOrder = await response.json();
 
-    if (!response.ok) {
-      alert(updatedOrder.error || "Unable to cancel order");
+      if (!response.ok) {
+        alert(updatedOrder.error || "Unable to cancel order");
+        return;
+      }
 
-      return;
+      setOrders((current) =>
+        current.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status: updatedOrder.status,
+              }
+            : order,
+        ),
+      );
+
+      // Close the modal upon success
+      setOrderToCancel(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setCancelling(false);
     }
-
-    setOrders((current) =>
-      current.map((order) =>
-        order.id === orderId
-          ? {
-              ...order,
-              status: updatedOrder.status,
-            }
-          : order,
-      ),
-    );
   }
 
   function toggleExpanded(orderId: number) {
@@ -115,7 +130,7 @@ export default function OrdersPage() {
         <Card key={order.id} className="mb-3">
           <div className="flex-between">
             <div>
-              <h3>Order #{order.id}</h3>
+              <h3>Order ID: {order.id}</h3>
 
               <p>{new Date(order.createdAt).toLocaleString()}</p>
 
@@ -179,9 +194,10 @@ export default function OrdersPage() {
 
               {order.status === "pending" && (
                 <div className="mt-3">
+                  {/* Clicking this now sets the active ID, triggering the modal */}
                   <Button
                     variant="danger"
-                    onClick={() => cancelOrder(order.id)}
+                    onClick={() => setOrderToCancel(order.id)}
                   >
                     Cancel Order
                   </Button>
@@ -191,6 +207,21 @@ export default function OrdersPage() {
           )}
         </Card>
       ))}
+
+      {/* Shared single modal implementation sitting comfortably at the bottom */}
+      <ConfirmModal
+        open={orderToCancel !== null}
+        title={`Cancel Order #${orderToCancel}`}
+        message="Are you sure you want to cancel this order? This action cannot be undone."
+        confirmText={cancelling ? "Cancelling..." : "Yes, Cancel Order"}
+        danger
+        onCancel={() => setOrderToCancel(null)}
+        onConfirm={() => {
+          if (orderToCancel !== null) {
+            cancelOrder(orderToCancel);
+          }
+        }}
+      />
     </main>
   );
 }

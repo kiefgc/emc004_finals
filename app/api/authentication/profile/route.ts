@@ -113,8 +113,27 @@ export async function DELETE(req: Request) {
 
     const userId = decoded.id;
 
-    await prisma.user.delete({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.passwordResetToken.deleteMany({
+        where: { email: user.email },
+      });
+
+      await tx.order.updateMany({
+        where: { userId: userId },
+        data: { userId: null },
+      });
+
+      await tx.user.delete({
+        where: { id: userId },
+      });
     });
 
     cookieStore.set("auth_token", "", {
@@ -129,7 +148,8 @@ export async function DELETE(req: Request) {
       { message: "Account successfully deleted" },
       { status: 200 },
     );
-  } catch {
+  } catch (error) {
+    console.error("ACCOUNT_DELETE_ERROR:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
