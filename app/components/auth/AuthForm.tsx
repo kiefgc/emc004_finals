@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-// Imported your custom ConfirmModal
 import ConfirmModal from "@/app/components/ui/ConfirmModal";
 
 type AuthMode = "login" | "register" | "forgot";
@@ -22,7 +21,6 @@ export default function AuthForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // New state to control the test-token modal popup visibility
   const [showTokenPopup, setShowTokenPopup] = useState(false);
 
   async function handleLoginOrRegister(e: React.FormEvent<HTMLFormElement>) {
@@ -290,15 +288,6 @@ export default function AuthForm() {
             >
               Request Reset Token
             </button>
-
-            {/* {generatedToken && (
-              <div className="mt-2">
-                <p className="text-sm text-gray-500">Development Mode Token:</p>
-                <div className="reset-token-box p-2 bg-gray-100 border rounded font-mono text-center my-1 text-sm">
-                  {generatedToken}
-                </div>
-              </div>
-            )} */}
 
             <div className="auth-group mt-4">
               <label>Reset Token</label>
