@@ -35,8 +35,6 @@ export default function CartItem({
   const [editing, setEditing] = useState(false);
   const [draftQuantity, setDraftQuantity] = useState(item.quantity);
   const [saving, setSaving] = useState(false);
-
-  // 1. Added state to track whether this specific item's modal is open
   const [showConfirm, setShowConfirm] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -44,9 +42,15 @@ export default function CartItem({
     setDraftQuantity(item.quantity);
   }, [item.quantity]);
 
-  const subtotal = draftQuantity * item.product.priceCents;
+  const activeQuantity = editing ? draftQuantity : item.quantity;
+  const subtotal = activeQuantity * item.product.priceCents;
 
   async function saveQuantity() {
+    if (draftQuantity === item.quantity) {
+      setEditing(false);
+      return;
+    }
+
     setSaving(true);
     try {
       await onQuantityChange(item.productId, draftQuantity, false);
@@ -60,7 +64,6 @@ export default function CartItem({
 
   function cancelEditing() {
     setDraftQuantity(item.quantity);
-    onQuantityChange(item.productId, item.quantity, true);
     setEditing(false);
   }
 
@@ -75,12 +78,13 @@ export default function CartItem({
         }}
       >
         <img
-          src={item.product.imageUrl}
+          src={item.product.imageUrl || "/placeholder-product.png"}
           alt={item.product.name}
           className="product-image"
           style={{
             height: "150px",
             marginBottom: 0,
+            objectFit: "cover",
           }}
         />
 
@@ -119,11 +123,9 @@ export default function CartItem({
               >
                 <Button
                   variant="secondary"
-                  onClick={() => {
-                    const nextQty = Math.max(1, draftQuantity - 1);
-                    setDraftQuantity(nextQty);
-                    onQuantityChange(item.productId, nextQty, true);
-                  }}
+                  onClick={() =>
+                    setDraftQuantity((prev) => Math.max(1, prev - 1))
+                  }
                   disabled={draftQuantity <= 1 || saving}
                 >
                   -
@@ -133,14 +135,11 @@ export default function CartItem({
 
                 <Button
                   variant="secondary"
-                  onClick={() => {
-                    const nextQty = Math.min(
-                      item.product.stockQuantity,
-                      draftQuantity + 1,
-                    );
-                    setDraftQuantity(nextQty);
-                    onQuantityChange(item.productId, nextQty, true);
-                  }}
+                  onClick={() =>
+                    setDraftQuantity((prev) =>
+                      Math.min(item.product.stockQuantity, prev + 1),
+                    )
+                  }
                   disabled={
                     draftQuantity >= item.product.stockQuantity || saving
                   }
@@ -172,7 +171,6 @@ export default function CartItem({
           </p>
 
           <div className="mt-3">
-            {/* 2. Triggers the local state to open the modal */}
             <Button variant="danger" onClick={() => setShowConfirm(true)}>
               Remove
             </Button>
@@ -180,7 +178,6 @@ export default function CartItem({
         </div>
       </div>
 
-      {/* 3. The modal is now safely nested inside the component return statement */}
       <ConfirmModal
         open={showConfirm}
         title="Remove Item"

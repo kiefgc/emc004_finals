@@ -3,6 +3,15 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 
+const verifyJwtAsync = (token: string, secret: string): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, secret, (err, decoded) => {
+      if (err) reject(err);
+      else resolve(decoded);
+    });
+  });
+};
+
 export async function GET(req: Request) {
   try {
     const cookieStore = await cookies();
@@ -14,7 +23,10 @@ export async function GET(req: Request) {
 
     let userId: string;
     try {
-      const decoded = jwt.verify(authToken, process.env.JWT_SECRET!) as {
+      const decoded = (await verifyJwtAsync(
+        authToken,
+        process.env.JWT_SECRET!,
+      )) as {
         userId?: string;
         id?: string;
         sub?: string;
@@ -33,20 +45,48 @@ export async function GET(req: Request) {
 
     const cartData = await prisma.shoppingCart.findUnique({
       where: { userId },
-      include: { items: { include: { product: true } } },
+      select: {
+        id: true,
+        userId: true,
+        items: {
+          select: {
+            id: true,
+            productId: true,
+            quantity: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                priceCents: true,
+                stockQuantity: true,
+                imageUrl: true,
+                description: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (cartData) {
       return NextResponse.json(cartData, { status: 200 });
-    } else {
-      const newCart = await prisma.shoppingCart.create({
-        data: {
-          userId,
-        },
-        include: { items: { include: { product: true } } },
-      });
-      return NextResponse.json(newCart, { status: 200 });
     }
+
+    const newCart = await prisma.shoppingCart.create({
+      data: { userId },
+      select: {
+        id: true,
+        userId: true,
+        items: {
+          select: {
+            id: true,
+            productId: true,
+            quantity: true,
+          },
+        },
+      },
+    });
+    return NextResponse.json(newCart, { status: 200 });
   } catch (error) {
     console.error("CRITICAL API ERROR:", error);
     return NextResponse.json(
@@ -67,7 +107,10 @@ export async function POST(request: NextRequest) {
 
     let decoded: any;
     try {
-      decoded = jwt.verify(authTokenCookie.value, process.env.JWT_SECRET!);
+      decoded = await verifyJwtAsync(
+        authTokenCookie.value,
+        process.env.JWT_SECRET!,
+      );
     } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -78,7 +121,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    // mode can be "increment" (for product pages) or "set" (for the cart adjustment page)
     const { productId, quantity, mode = "increment" } = body;
 
     if (
@@ -95,62 +137,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cart = await prisma.shoppingCart.upsert({
-      where: { userId },
-      create: { userId },
-      update: {},
+    const result = await prisma.$transaction(async (tx) => {
+      const cart = await tx.shoppingCart.upsert({
+        where: { userId },
+        create: { userId },
+        update: {},
+        select: { id: true },
+      });
+
+      const whereKey = {
+        unique_cart_item: {
+          cartId: cart.id,
+          productId,
+        },
+      };
+
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+        select: { stockQuantity: true },
+      });
+
+      if (!product) return { error: "Product not found", status: 404 };
+
+      const existingCartItem = await tx.cartItem.findUnique({
+        where: whereKey,
+        select: { quantity: true },
+      });
+
+      const existingQuantity = existingCartItem?.quantity || 0;
+      const newTotalQuantity =
+        mode === "set" ? quantity : existingQuantity + quantity;
+
+      if (newTotalQuantity > product.stockQuantity) {
+        return { error: "Insufficient stock available.", status: 400 };
+      }
+
+      const cartItem = await tx.cartItem.upsert({
+        where: whereKey,
+        create: {
+          cartId: cart.id,
+          productId,
+          quantity: newTotalQuantity,
+        },
+        update:
+          mode === "set" ? { quantity } : { quantity: { increment: quantity } },
+      });
+
+      return { data: cartItem, status: 200 };
     });
 
-    const whereKey = {
-      unique_cart_item: {
-        cartId: cart.id,
-        productId,
-      },
-    };
-
-    const [product, existingCartItem] = await Promise.all([
-      prisma.product.findUnique({
-        where: { id: productId },
-      }),
-      prisma.cartItem.findUnique({
-        where: whereKey,
-      }),
-    ]);
-
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
-
-    // Calculate target quantity depending on the operation mode
-    const existingQuantity = existingCartItem?.quantity || 0;
-    const newTotalQuantity =
-      mode === "set" ? quantity : existingQuantity + quantity;
-
-    // Stock check against the calculated target
-    if (newTotalQuantity > product.stockQuantity) {
+    if (result.error) {
       return NextResponse.json(
-        { error: "Insufficient stock available." },
-        { status: 400 },
+        { error: result.error },
+        { status: result.status },
       );
     }
 
-    // Perform the correct database update operation
-    const cartItem = await prisma.cartItem.upsert({
-      where: whereKey,
-      create: {
-        cartId: cart.id,
-        productId,
-        quantity: newTotalQuantity, // Handles both cases natively on creation
-      },
-      update:
-        mode === "set"
-          ? { quantity } // Directly overwrite
-          : { quantity: { increment: quantity } }, // Atomic increment
-    });
-
     return NextResponse.json({
       message: "Cart updated successfully",
-      cartItem,
+      cartItem: result.data,
     });
   } catch (error) {
     console.error(error);

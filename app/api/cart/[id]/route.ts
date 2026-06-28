@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
-import { prisma } from "@/lib/prisma"; // Adjust path if necessary
+import { prisma } from "@/lib/prisma";
+
+const verifyJwtAsync = (token: string, secret: string): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, secret, (err, decoded) => {
+      if (err) reject(err);
+      else resolve(decoded);
+    });
+  });
+};
 
 export async function DELETE(
   request: Request,
@@ -11,13 +20,16 @@ export async function DELETE(
     const cookieStore = await cookies();
     const authToken = cookieStore.get("auth_token");
 
-    if (!authToken) {
+    if (!authToken || !authToken.value) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let decoded: any;
+    let decoded: { id: string };
     try {
-      decoded = jwt.verify(authToken.value, process.env.JWT_SECRET!);
+      decoded = (await verifyJwtAsync(
+        authToken.value,
+        process.env.JWT_SECRET!,
+      )) as { id: string };
     } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -37,37 +49,28 @@ export async function DELETE(
       );
     }
 
-    // 1. Security Check: Fetch the item and include the parent cart relation
-    const cartItem = await prisma.cartItem.findUnique({
-      where: { id: cartItemId },
-      include: {
-        cart: true, // Matches your schema relation name
+    const deleteResult = await prisma.cartItem.deleteMany({
+      where: {
+        id: cartItemId,
+        cart: {
+          userId: userId,
+        },
       },
     });
 
-    if (!cartItem) {
+    if (deleteResult.count === 0) {
       return NextResponse.json(
-        { error: "Cart item not found" },
+        { error: "Cart item not found or unauthorized access" },
         { status: 404 },
       );
     }
 
-    // 2. Validate ownership to prevent cross-user deletion attempts
-    if (cartItem.cart.userId !== userId) {
-      return NextResponse.json(
-        { error: "Unauthorized access to this cart item" },
-        { status: 403 },
-      );
-    }
-
-    // 3. Directly delete using the CartItem's primary key ID
-    await prisma.cartItem.delete({
-      where: { id: cartItemId },
-    });
-
-    return NextResponse.json({
-      message: "Item removed from cart",
-    });
+    return NextResponse.json(
+      {
+        message: "Item removed from cart",
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Error deleting cart item:", error);
     return NextResponse.json(

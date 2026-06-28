@@ -3,6 +3,15 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 
+const verifyJwtAsync = (token: string, secret: string): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, secret, (err, decoded) => {
+      if (err) reject(err);
+      else resolve(decoded);
+    });
+  });
+};
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -23,6 +32,14 @@ export async function GET(req: Request) {
 
     const products = await prisma.product.findMany({
       orderBy: orderBy,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        priceCents: true,
+        stockQuantity: true,
+        imageUrl: true,
+      },
     });
 
     return NextResponse.json(products, { status: 200 });
@@ -44,10 +61,10 @@ export async function POST(req: Request) {
     }
 
     const token = authTokenCookie.value;
-    let decoded;
+    let decoded: { id: string };
 
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      decoded = (await verifyJwtAsync(token, process.env.JWT_SECRET!)) as {
         id: string;
       };
     } catch (error) {
@@ -56,7 +73,11 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      include: { role: true },
+      select: {
+        role: {
+          select: { name: true },
+        },
+      },
     });
 
     if (!user || user.role.name !== "ADMIN") {
@@ -83,9 +104,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const priceString = price.toString();
-    const decimalRegex = /^\d+(\.\d{1,2})?$/;
-    if (!decimalRegex.test(priceString)) {
+    if (Math.floor(price * 100) !== Math.round(price * 100)) {
       return NextResponse.json(
         { error: "Price cannot have more than 2 decimal places" },
         { status: 400 },
@@ -101,6 +120,7 @@ export async function POST(req: Request) {
 
     const existingProduct = await prisma.product.findFirst({
       where: { name },
+      select: { id: true },
     });
 
     if (existingProduct) {
@@ -113,8 +133,8 @@ export async function POST(req: Request) {
     const newPriceCents = Math.round(price * 100);
     const newProduct = await prisma.product.create({
       data: {
-        name,
-        description: description || null,
+        name: name.trim(),
+        description: description?.trim() || null,
         priceCents: newPriceCents,
         stockQuantity: stock,
         supplierName: supplierName?.trim() || null,
@@ -124,6 +144,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error) {
+    console.error("PRODUCT_POST_ERROR:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

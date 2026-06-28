@@ -1,5 +1,3 @@
-// app/components/admin/AdminStatCard.tsx
-
 import Card from "@/app/components/ui/Card";
 
 interface AdminStatCardProps {

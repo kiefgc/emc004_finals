@@ -1,5 +1,3 @@
-// app/components/admin/ProductManagementCard.tsx
-
 "use client";
 
 import Card from "@/app/components/ui/Card";

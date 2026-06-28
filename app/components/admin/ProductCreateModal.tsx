@@ -11,7 +11,6 @@ interface ProductCreateModalProps {
   loading?: boolean;
   onClose: () => void;
 
-  // Updated signature type keys to match your exact backend parameter keys
   onCreate: (product: {
     name: string;
     description: string | null;
@@ -72,12 +71,11 @@ export default function ProductCreateModal({
       return;
     }
 
-    // Pass structured keys straight through matching the exact API endpoint names
     await onCreate({
       name: name.trim(),
       description: description.trim() || null,
-      price: parsedPrice, // Passes the raw numeric decimal value (e.g. 149.99)
-      stock: parsedStock, // Passes integer format variable name
+      price: parsedPrice,
+      stock: parsedStock,
       supplierName: supplierName.trim() || null,
       imageUrl: imageUrl.trim() || null,
     });

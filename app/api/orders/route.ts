@@ -9,6 +9,15 @@ interface JWTPayload {
   role: string;
 }
 
+const verifyJwtAsync = (token: string, secret: string): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, secret, (err, decoded) => {
+      if (err) reject(err);
+      else resolve(decoded);
+    });
+  });
+};
+
 export async function POST(req: Request) {
   const cookieStore = await cookies();
   const auth_token = cookieStore.get("auth_token");
@@ -22,10 +31,10 @@ export async function POST(req: Request) {
       throw new Error("JWT_SECRET not configured");
     }
 
-    const decoded = jwt.verify(
+    const decoded = (await verifyJwtAsync(
       auth_token.value,
       process.env.JWT_SECRET,
-    ) as JWTPayload;
+    )) as JWTPayload;
     const userId = decoded.id;
 
     const body = await req.json().catch(() => null);
@@ -49,12 +58,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Fetch the shopping cart with its items
     const shoppingCart = await prisma.shoppingCart.findUnique({
       where: { userId },
-      include: {
+      select: {
+        id: true,
         items: {
-          include: { product: true },
+          select: {
+            productId: true,
+            quantity: true,
+            product: {
+              select: {
+                priceCents: true,
+                name: true,
+              },
+            },
+          },
         },
       },
     });
@@ -63,21 +81,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    // Execute database mutations inside a transaction to ensure integrity
     const placedOrder = await prisma.$transaction(async (tx) => {
       const productIds = shoppingCart.items.map((item) => item.productId);
 
       const dbProducts = await tx.product.findMany({
-        where: {
-          id: { in: productIds },
+        where: { id: { in: productIds } },
+        select: {
+          id: true,
+          stockQuantity: true,
+          priceCents: true,
+          name: true,
         },
       });
 
-      // Map products by ID for fast O(1) lookups in memory
       const productMap = new Map(dbProducts.map((p) => [p.id, p]));
       let totalAmountCents = 0;
 
-      // 2. Validate quantities and stock in-memory using the mapped data
       for (const item of shoppingCart.items) {
         const currentProduct = productMap.get(item.productId);
 
@@ -102,7 +121,6 @@ export async function POST(req: Request) {
         totalAmountCents += item.quantity * currentProduct.priceCents;
       }
 
-      // 3. Create the order record (Database will apply the default "PENDING" status automatically)
       const order = await tx.order.create({
         data: {
           userId,
@@ -113,7 +131,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // 4. Batch insert all order items at once
       await tx.orderItem.createMany({
         data: shoppingCart.items.map((item) => ({
           orderId: order.id,
@@ -123,19 +140,15 @@ export async function POST(req: Request) {
         })),
       });
 
-      // 5. Update stock quantities
-      // Note: While this still runs loops, it only handles updates, which cannot be grouped cleanly
-      // without raw SQL or a bulk-update strategy if your DB engine supports it.
-      for (const item of shoppingCart.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stockQuantity: { decrement: item.quantity },
-          },
-        });
-      }
+      await Promise.all(
+        shoppingCart.items.map((item) =>
+          tx.product.update({
+            where: { id: item.productId },
+            data: { stockQuantity: { decrement: item.quantity } },
+          }),
+        ),
+      );
 
-      // 6. Clear the shopping cart items
       await tx.cartItem.deleteMany({
         where: { cartId: shoppingCart.id },
       });
@@ -144,10 +157,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      {
-        message: "Order placed successfully",
-        order: placedOrder,
-      },
+      { message: "Order placed successfully", order: placedOrder },
       { status: 201 },
     );
   } catch (error) {
@@ -182,11 +192,10 @@ export async function GET() {
       throw new Error("JWT_SECRET not configured");
     }
 
-    const decoded = jwt.verify(
+    const decoded = (await verifyJwtAsync(
       auth_token.value,
       process.env.JWT_SECRET,
-    ) as JWTPayload;
-
+    )) as JWTPayload;
     let orders;
 
     if (decoded.role === "ADMIN") {
@@ -194,11 +203,16 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         include: {
           items: {
-            include: { product: true },
+            select: {
+              id: true,
+              quantity: true,
+              priceAtPurchaseCents: true,
+              product: {
+                select: { id: true, name: true, imageUrl: true },
+              },
+            },
           },
-          user: {
-            select: { id: true, email: true },
-          },
+          user: { select: { id: true, email: true } },
         },
       });
     } else if (decoded.role === "USER") {
@@ -207,8 +221,16 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         include: {
           items: {
-            include: { product: true },
+            select: {
+              id: true,
+              quantity: true,
+              priceAtPurchaseCents: true,
+              product: {
+                select: { id: true, name: true, imageUrl: true },
+              },
+            },
           },
+          user: { select: { id: true, email: true } },
         },
       });
     } else {
