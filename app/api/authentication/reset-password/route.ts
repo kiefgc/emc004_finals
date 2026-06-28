@@ -26,6 +26,11 @@ export async function POST(req: Request) {
 
     const resetEntry = await prisma.passwordResetToken.findUnique({
       where: { token },
+      select: {
+        id: true,
+        email: true,
+        expiresAt: true,
+      },
     });
 
     if (
@@ -39,7 +44,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const passwordHash = await bcryptjs.hash(newPassword, 12);
+    const saltRounds = process.env.NODE_ENV === "test" ? 4 : 12;
+    const passwordHash = await bcryptjs.hash(newPassword, saltRounds);
 
     await prisma.$transaction([
       prisma.user.update({
@@ -51,8 +57,12 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    return NextResponse.json({ message: "Password updated successfully" });
+    return NextResponse.json(
+      { message: "Password updated successfully" },
+      { status: 200 },
+    );
   } catch (error) {
+    console.error("Reset password database error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

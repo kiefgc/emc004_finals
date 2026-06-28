@@ -6,7 +6,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Validate email and password fields
     if (!body.email || !body.password) {
       return NextResponse.json(
         { error: "Email and password are required" },
@@ -71,9 +70,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if user already exists with the supplied email
     const existingUser = await prisma.user.findUnique({
       where: { email: trimmedEmail },
+      select: { id: true },
     });
 
     if (existingUser) {
@@ -83,27 +82,28 @@ export async function POST(req: Request) {
       );
     }
 
-    // Hash password using bcryptjs
-    const hashedPassword = await bcryptjs.hash(trimmedPassword, 10);
+    const saltRounds = process.env.NODE_ENV === "test" ? 4 : 10;
+    const hashedPassword = await bcryptjs.hash(trimmedPassword, saltRounds);
 
-    // Query the Role table where `name = "USER"`
     const role = await prisma.role.findFirst({
-      where: {
-        name: "USER",
-      },
+      where: { name: "USER" },
+      select: { id: true },
     });
 
     if (!role) {
-      throw new Error("USER role is missing");
+      return NextResponse.json(
+        { error: "System configuration error: USER role missing" },
+        { status: 500 },
+      );
     }
 
-    // Create the user record using `prisma.user.create`
     const user = await prisma.user.create({
       data: {
         email: trimmedEmail,
         passwordHash: hashedPassword,
         roleId: role.id,
       },
+      select: { id: true },
     });
 
     return NextResponse.json(
@@ -111,7 +111,6 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (error) {
-    // Return HTTP 500 for unexpected failures
     console.error(error);
     return NextResponse.json(
       { error: "Internal server error" },
