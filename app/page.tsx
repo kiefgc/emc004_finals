@@ -59,8 +59,13 @@ export default async function HomePage() {
             <h1 className="hero-title">Placeholder E-Commerce Site</h1>
 
             <p className="hero-subtitle">
-              Discover modern products and seamless shopping experiences powered
-              by Next.js and PostgreSQL.
+              We had a little less than a week to complete this web app, you can
+              browse the products below and add them to your cart. <br />
+              If you wish to test the admin dashboard where you can manage
+              products and view orders. Use these exact credentials: <br />
+              Email: admin@meraki.com <br />
+              Password: SuperSecureHashedPassword123! <br />
+              (Contact 2_na on discord for any issues with the web app)
             </p>
 
             <div className="hero-actions">
