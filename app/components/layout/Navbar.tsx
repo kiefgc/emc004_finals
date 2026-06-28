@@ -13,6 +13,7 @@ interface NavbarProps {
 
 export default function Navbar({ user }: NavbarProps) {
   const isAdmin = user?.role.name === "ADMIN";
+  const isUser = user?.role.name === "USER";
 
   return (
     <header className="navbar">
@@ -38,13 +39,16 @@ export default function Navbar({ user }: NavbarProps) {
 
           {user && (
             <>
-              <Link href="/cart" className="nav-link">
-                Cart
-              </Link>
-
-              <Link href="/orders" className="nav-link">
-                Orders
-              </Link>
+              {isUser && (
+                <Link href="/cart" className="nav-link">
+                  Cart
+                </Link>
+              )}
+              {isUser && (
+                <Link href="/orders" className="nav-link">
+                  Orders
+                </Link>
+              )}
 
               {isAdmin && (
                 <Link href="/admin" className="nav-link">

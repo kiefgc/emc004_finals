@@ -11,6 +11,7 @@ import ProductEditModal from "@/app/components/admin/ProductEditModal";
 
 import ConfirmModal from "@/app/components/ui/ConfirmModal";
 import Button from "@/app/components/ui/Button";
+import BackButton from "@/app/components/navigation/BackButton";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -197,9 +198,9 @@ export default function AdminProductsPage() {
   return (
     <>
       <Navbar user={user} />
-
       <main className="section">
         <div className="container">
+          <BackButton href="/admin" label="Back to Admin Dashboard" />
           <div className="flex-between mb-4">
             <div>
               <h1>Product Management</h1>
