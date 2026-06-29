@@ -14,12 +14,20 @@ interface Product {
 interface Props {
   product: Product;
   isLoggedIn: boolean;
+  userRole?: string;
 }
 
-export default function ProductCard({ product, isLoggedIn }: Props) {
+export default function ProductCard({ product, isLoggedIn, userRole }: Props) {
+  const isAdmin = userRole === "ADMIN";
+
   async function handleAddToCart() {
     if (!isLoggedIn) {
       alert("Please log in first.");
+      return;
+    }
+
+    if (isAdmin) {
+      alert("Administrators cannot add items to a shopping cart.");
       return;
     }
 
@@ -63,8 +71,12 @@ export default function ProductCard({ product, isLoggedIn }: Props) {
 
       <p className="stock">Stock Available: {product.stockQuantity}</p>
 
-      <button className="btn btn-primary w-full mt-2" onClick={handleAddToCart}>
-        Add to Cart
+      <button
+        disabled={isAdmin}
+        className={`w-full mt-2 btn ${isAdmin ? "bg-gray-300 text-gray-500 cursor-not-allowed border-none" : "btn-primary"}`}
+        onClick={handleAddToCart}
+      >
+        {isAdmin ? "Admin View Only" : "Add to Cart"}
       </button>
     </Card>
   );

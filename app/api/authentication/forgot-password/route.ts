@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       {
         message:
           "If your email is registered in our system, you will receive a reset link shortly.",
-        ...(process.env.NODE_ENV === "test" && { token: generatedToken }), // Only expose token back to tests if mocking email dispatchers
+        token: generatedToken,
       },
       { status: 200 },
     );

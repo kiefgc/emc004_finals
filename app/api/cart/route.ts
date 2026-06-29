@@ -2,46 +2,60 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+interface JWTPayload {
+  userId?: string;
+  id?: string;
+  sub?: string;
+  role?: string;
+}
 
-const verifyJwtAsync = (token: string, secret: string): Promise<any> => {
+const verifyJwtAsync = (token: string, secret: string): Promise<JWTPayload> => {
   return new Promise((resolve, reject) => {
     jwt.verify(token, secret, (err, decoded) => {
       if (err) reject(err);
-      else resolve(decoded);
+      else resolve(decoded as JWTPayload);
     });
   });
 };
 
+async function authorizeUser(): Promise<{ userId: string } | NextResponse> {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("auth_token")?.value;
+
+  if (!authToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const decoded = await verifyJwtAsync(authToken, process.env.JWT_SECRET!);
+    const userId = decoded.userId || decoded.id || decoded.sub;
+    const role = decoded.role;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid token payload format" },
+        { status: 401 },
+      );
+    }
+
+    if (role !== "USER") {
+      return NextResponse.json(
+        { error: "Forbidden: Access restricted to standard users" },
+        { status: 403 },
+      );
+    }
+
+    return { userId };
+  } catch (error) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+}
+
 export async function GET(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const authToken = cookieStore.get("auth_token")?.value;
-
-    if (!authToken) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let userId: string;
-    try {
-      const decoded = (await verifyJwtAsync(
-        authToken,
-        process.env.JWT_SECRET!,
-      )) as {
-        userId?: string;
-        id?: string;
-        sub?: string;
-      };
-      userId = decoded.userId || decoded.id || decoded.sub || "";
-
-      if (!userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: Invalid token payload format" },
-          { status: 401 },
-        );
-      }
-    } catch (error) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await authorizeUser();
+    if (authResult instanceof NextResponse) return authResult;
+    const { userId } = authResult;
 
     const cartData = await prisma.shoppingCart.findUnique({
       where: { userId },
@@ -98,27 +112,9 @@ export async function GET(req: Request) {
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const authTokenCookie = cookieStore.get("auth_token");
-
-    if (!authTokenCookie) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let decoded: any;
-    try {
-      decoded = await verifyJwtAsync(
-        authTokenCookie.value,
-        process.env.JWT_SECRET!,
-      );
-    } catch {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = decoded?.id;
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await authorizeUser();
+    if (authResult instanceof NextResponse) return authResult;
+    const { userId } = authResult;
 
     const body = await request.json();
     const { productId, quantity, mode = "increment" } = body;
@@ -169,7 +165,10 @@ export async function POST(request: NextRequest) {
         mode === "set" ? quantity : existingQuantity + quantity;
 
       if (newTotalQuantity > product.stockQuantity) {
-        return { error: "Insufficient stock available.", status: 400 };
+        return {
+          error: `Insufficient stock available. Only ${product.stockQuantity} remaining.`,
+          status: 400,
+        };
       }
 
       const cartItem = await tx.cartItem.upsert({
@@ -179,8 +178,9 @@ export async function POST(request: NextRequest) {
           productId,
           quantity: newTotalQuantity,
         },
-        update:
-          mode === "set" ? { quantity } : { quantity: { increment: quantity } },
+        update: {
+          quantity: newTotalQuantity,
+        },
       });
 
       return { data: cartItem, status: 200 };

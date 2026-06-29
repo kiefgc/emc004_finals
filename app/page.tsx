@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
-// Get the base URL dynamically based on the environment (Local vs Vercel)
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 async function getProducts() {
@@ -99,7 +98,7 @@ export default async function HomePage() {
                     <button className="btn btn-primary">Manage Products</button>
                   </a>
 
-                  <a href="/orders">
+                  <a href="/admin/orders">
                     <button className="btn btn-secondary">View Orders</button>
                   </a>
                 </>
@@ -120,6 +119,7 @@ export default async function HomePage() {
                   key={product.id}
                   product={product}
                   isLoggedIn={isLoggedIn}
+                  userRole={user?.role?.name}
                 />
               ))}
             </div>

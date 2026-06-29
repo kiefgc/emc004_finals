@@ -27,10 +27,6 @@ export default function Navbar({ user }: NavbarProps) {
             Home
           </Link>
 
-          <a href="#products" className="nav-link">
-            Products
-          </a>
-
           {!user && (
             <Link href="/auth" className="nav-link">
               Login
