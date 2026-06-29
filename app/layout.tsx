@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Eccomerce Site",
+  title: "Ecommerce Site",
   description: "EMC004 Finals Project",
 };
 
