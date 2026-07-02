@@ -55,54 +55,60 @@ export default async function HomePage() {
       <main>
         <section className="hero-section">
           <div className="container hero-content">
-            <h1 className="hero-title">Placeholder E-Commerce Site</h1>
+            <span className="hero-tagline">Artisanal Collective • 11th Jamboree</span>
+            <h1 className="hero-title">Vantgarde</h1>
 
             <p className="hero-subtitle">
-              We had a little less than a week to complete this web app, you can
-              browse the products below and add them to your cart. <br />
-              If you wish to test the admin dashboard where you can manage
-              products and view orders. Use these exact credentials: <br />
-              Email: admin@meraki.com <br />
-              Password: SuperSecureHashedPassword123! <br />
-              (Contact 2_na on discord for any issues with the web app)
+              From our workshop along 11th Jamboree, we obsess over form, texture, and secrecy.
+              Every piece is an artifact: sculpted by our local artisans, finished by hand,
+              and designed for those who command a presence. Discover the anthology.
             </p>
 
             <div className="hero-actions">
+              {/* 1. Guest View */}
               {!isLoggedIn && (
                 <>
                   <a href="#products">
                     <button className="btn btn-primary">Browse Products</button>
                   </a>
-
                   <a href="/auth">
                     <button className="btn btn-secondary">Login</button>
                   </a>
                 </>
               )}
 
+              {/* 2. Regular Logged In User View */}
               {isLoggedIn && !isAdmin && (
                 <>
                   <a href="#products">
                     <button className="btn btn-primary">Browse Products</button>
                   </a>
-
                   <a href="/cart">
                     <button className="btn btn-secondary">View Cart</button>
                   </a>
                 </>
               )}
 
+              {/* 3. Admin View */}
               {isAdmin && (
                 <>
                   <a href="/admin">
                     <button className="btn btn-primary">Manage Products</button>
                   </a>
-
                   <a href="/admin/orders">
                     <button className="btn btn-secondary">View Orders</button>
                   </a>
                 </>
               )}
+            </div>
+
+            {/* Subtle Admin Hint container so the grading panel can easily see it */}
+            <div className="admin-credentials-hint">
+              <details>
+                <summary>Demo Admin Access</summary>
+                <p>Email: admin@meraki.com | Password: SuperSecureHashedPassword123!</p>
+                <p className="text-muted">(Contact 2_na on discord for any issues with the web app)</p>
+              </details>
             </div>
           </div>
         </section>
