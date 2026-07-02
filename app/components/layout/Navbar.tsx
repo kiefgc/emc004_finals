@@ -19,7 +19,7 @@ export default function Navbar({ user }: NavbarProps) {
     <header className="navbar">
       <div className="container flex-between">
         <Link href="/">
-          <h2 className="logo">Placeholder Shop</h2>
+          <h2 className="logo">Vantgarde Designers</h2>
         </Link>
 
         <nav className="nav-links">

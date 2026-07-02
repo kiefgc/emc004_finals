@@ -361,12 +361,15 @@ a {
 .mt-1 {
   margin-top: 0.5rem;
 }
+
 .mt-2 {
   margin-top: 1rem;
 }
+
 .mt-3 {
   margin-top: 1.5rem;
 }
+
 .mt-4 {
   margin-top: 2rem;
 }
@@ -374,12 +377,15 @@ a {
 .mb-1 {
   margin-bottom: 0.5rem;
 }
+
 .mb-2 {
   margin-bottom: 1rem;
 }
+
 .mb-3 {
   margin-bottom: 1.5rem;
 }
+
 .mb-4 {
   margin-bottom: 2rem;
 }
@@ -597,8 +603,10 @@ a {
 /* Optional adjustment: Fixes the margin spacing to tighten up the layout */
 .auth-forgot {
   text-align: right;
-  margin-top: -0.5rem; /* Pulls it slightly closer to the password field */
-  margin-bottom: 1.25rem; /* Matches the standard bottom group spacing */
+  margin-top: -0.5rem;
+  /* Pulls it slightly closer to the password field */
+  margin-bottom: 1.25rem;
+  /* Matches the standard bottom group spacing */
 }
 
 .hero-section {
@@ -643,6 +651,10 @@ a {
 
 .logo {
   cursor: pointer;
+}
+
+.admin-credentials-hint {
+  margin-top: 10px;
 }
 
 /* ============================= */
